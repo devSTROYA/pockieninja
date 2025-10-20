@@ -325,7 +325,7 @@ class LasNoches {
     const parsedFloor = parseInt(userInput, 10);
 
     if (!isNaN(parsedFloor) && parsedFloor > 0) {
-      targetFloorLN = parsedFloor;
+      this.targetFloor = parsedFloor;
     } else {
       showSnackbar('Invalid. Use positive numbers.');
       document.getElementById('toggleButton')?.click();
