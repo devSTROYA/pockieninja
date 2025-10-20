@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.0.3
+// @version      1.1.0
 // @match        *://s01.pockieninja.online/
 // @grant        none
 // ==/UserScript==
@@ -12,6 +12,7 @@
 // changelog    1.0.1 - Fix Valhalla
 // changelog    1.0.2 - Fix Las Noches
 // changelog    1.0.3 - Fix Z Index Floating UI Behind Chat Panel
+// changelog    1.1.0 - Add Parties Automation for Slot Machine
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -31,29 +32,47 @@ const uiLeft = parseFloat(localStorage.getItem(AUTO_UI_LEFT)) || DEFAULT_LEFT;
 const items = [
   { id: 'ex', label: 'Exploration' },
   { id: 'sd', label: 'Soulblade Demon' },
-  { id: 'sm', label: 'Slot Machine' },
+  { id: 'sm', label: 'Slot Machine - Leader' },
+  { id: 'sm2', label: 'Slot Machine - Parties' },
   { id: 'ln', label: 'Las Noches' },
   { id: 'vh', label: 'Valhalla' },
   { id: 'nt', label: 'Ninja Trial' },
 ];
 
 class SlotMachine {
-  static autoSlotMachine = false;
+  static isAutomatic = false;
   static isSlotMachineIconClicked = false;
 
+  static startAutomationParties() {
+    if (!this.isAutomatic) {
+      this.isAutomatic = true;
+      this.challengeAsParties();
+    }
+  }
+
   static startAutomation() {
-    if (!this.autoSlotMachine) {
-      this.autoSlotMachine = true;
+    if (!this.isAutomatic) {
+      this.isAutomatic = true;
       this.challenge();
     }
   }
 
   static stopAutomation() {
-    this.autoSlotMachine = false;
+    this.isAutomatic = false;
+  }
+
+  static challengeAsParties() {
+    if (!this.isAutomatic) return;
+
+    const boundCallback = this.challengeAsParties.bind(this);
+
+    setTimeout(() => {
+      repetitiveBattleCheck(boundCallback, true, 1500);
+    }, 3000);
   }
 
   static challenge() {
-    if (!this.autoSlotMachine) return;
+    if (!this.isAutomatic) return;
 
     const boundCallback = this.challenge.bind(this);
     const challengeButton = document.querySelector('.slot-machine__challenge-btn');
@@ -111,7 +130,7 @@ class SlotMachine {
 }
 
 class SoulDemonBlade {
-  static autoSoulDemonBlade = false;
+  static isAutomatic = false;
   static farmingLoop = null;
   static clickDelay = 400;
   static battleDuration = 5000;
@@ -173,16 +192,16 @@ class SoulDemonBlade {
   }
 
   static runLoop() {
-    if (!this.autoSoulDemonBlade) return;
+    if (!this.isAutomatic) return;
 
     this.simulateBossClick();
 
     const boundCallback = this.runLoop.bind(this);
 
     setTimeout(() => {
-      if (checkForOutOfProofs()) {
+      if (this.checkForOutOfProofs()) {
         showSnackbar('Out of Demon Proofs. Stopping.', COLORS.FAILED);
-        this.autoSoulDemonBlade = false;
+        this.isAutomatic = false;
         return;
       }
 
@@ -196,7 +215,7 @@ class SoulDemonBlade {
 
       setTimeout(() => {
         repetitiveBattleCheck(() => {
-          if (this.autoSoulDemonBlade) {
+          if (this.isAutomatic) {
             this.farmingLoop = setTimeout(boundCallback, this.loopInterval);
           }
         });
@@ -205,7 +224,7 @@ class SoulDemonBlade {
   }
 
   static startAutomation() {
-    this.autoSoulDemonBlade = true;
+    this.isAutomatic = true;
 
     if (!this.farmingLoop) {
       this.farmingLoop = setTimeout(this.runLoop, this.loopInterval);
@@ -213,7 +232,7 @@ class SoulDemonBlade {
   }
 
   static stopAutomation() {
-    this.autoSoulDemonBlade = false;
+    this.isAutomatic = false;
 
     if (this.farmingLoop) {
       clearTimeout(this.farmingLoop);
@@ -223,7 +242,7 @@ class SoulDemonBlade {
 }
 
 class Exploration {
-  static autoExploration = false;
+  static isAutomatic = false;
   static selectedMonsterIndex = null;
   static currentBattleCount = 0;
   static maxBattleCount = 10;
@@ -250,7 +269,7 @@ class Exploration {
   static startAutomation() {
     const boundCallback = this.startAutomation.bind(this);
 
-    if (!this.autoExploration) {
+    if (!this.isAutomatic) {
       const userInput = prompt('Please choose monster number that you want to attack (1-5):');
       const index = parseInt(userInput, 10);
 
@@ -259,19 +278,19 @@ class Exploration {
         return;
       }
 
-      this.autoExploration = true;
+      this.isAutomatic = true;
       this.selectedMonsterIndex = index - 1;
       this.currentBattleCount = 0;
     }
 
-    if (!this.autoExploration || this.currentBattleCount >= this.maxBattleCount) {
-      this.autoExploration = false;
+    if (!this.isAutomatic || this.currentBattleCount >= this.maxBattleCount) {
+      this.isAutomatic = false;
       return;
     }
 
-    if (this.clickMonster(selectedMonsterIndex)) {
+    if (this.clickMonster(this.selectedMonsterIndex)) {
       repetitiveBattleCheck(() => {
-        currentBattleCount++;
+        this.currentBattleCount++;
         setTimeout(boundCallback, 1000);
       }, 500);
     } else {
@@ -281,16 +300,16 @@ class Exploration {
   }
 
   static stopAutomation() {
-    this.autoExploration = false;
+    this.isAutomatic = false;
   }
 }
 
 class LasNoches {
-  static autoLasNoches = false;
+  static isAutomatic = false;
   static targetFloor = 170;
 
   static startOrContinue() {
-    if (!this.autoLasNoches) return;
+    if (!this.isAutomatic) return;
 
     const boundCallback = this.startOrContinue.bind(this);
 
@@ -303,7 +322,7 @@ class LasNoches {
 
       if (currentFloor === this.targetFloor) {
         document.getElementById('toggleButton')?.click();
-        this.autoLasNoches = false;
+        this.isAutomatic = false;
         return;
       }
     }
@@ -323,7 +342,7 @@ class LasNoches {
   }
 
   static startAutomation() {
-    if (this.autoLasNoches) return;
+    if (this.isAutomatic) return;
 
     const userInput = prompt('Input floor destination (ex: 170):', '170');
     const parsedFloor = parseInt(userInput, 10);
@@ -336,68 +355,65 @@ class LasNoches {
       return;
     }
 
-    this.autoLasNoches = true;
+    this.isAutomatic = true;
     showSnackbar('Las Noches automation started...', COLORS.SUCCESS);
     this.startOrContinue();
   }
 
   static stopAutomation() {
-    this.autoLasNoches = false;
+    this.isAutomatic = false;
     showSnackbar('Las Noches automation stopped...', COLORS.SUCCESS);
   }
 }
 
-let autoValhalla = false;
-let currentDungeonIndex = 0;
-const valhallaDungeons = [
-  {
-    completeSelector: '#game-container > div:nth-child(5) > div:nth-child(2) > img[src*="0_complete.png"]',
-    buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(2) > button > img',
-    monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(3)',
-  },
-  {
-    completeSelector: '#game-container > div:nth-child(5) > div:nth-child(3) > img[src*="1_complete.png"]',
-    buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(3) > button > img',
-    monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(4)',
-  },
-  {
-    completeSelector: '#game-container > div:nth-child(5) > div:nth-child(4) > img[src*="2_complete.png"]',
-    buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(4) > button > img',
-    monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(5)',
-  },
-  {
-    completeSelector: '#game-container > div:nth-child(5) > div:nth-child(5) > img[src*="3_complete.png"]',
-    buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(5) > button > img',
-    monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(6)',
-  },
-];
+class Valhalla {
+  static isAutomatic = false;
+  static currentDungeonIndex = 0;
+  static valhallaDungeons = [
+    {
+      completeSelector: '#game-container > div:nth-child(5) > div:nth-child(2) > img[src*="0_complete.png"]',
+      buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(2) > button > img',
+      monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(3)',
+    },
+    {
+      completeSelector: '#game-container > div:nth-child(5) > div:nth-child(3) > img[src*="1_complete.png"]',
+      buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(3) > button > img',
+      monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(4)',
+    },
+    {
+      completeSelector: '#game-container > div:nth-child(5) > div:nth-child(4) > img[src*="2_complete.png"]',
+      buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(4) > button > img',
+      monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(5)',
+    },
+    {
+      completeSelector: '#game-container > div:nth-child(5) > div:nth-child(5) > img[src*="3_complete.png"]',
+      buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(5) > button > img',
+      monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(6)',
+    },
+  ];
 
-function waitForElement(selector, callback, checkInterval = 500) {
-  const interval = setInterval(() => {
-    if (!autoValhalla) return clearInterval(interval);
-    const el = document.querySelector(selector);
-    if (el) {
-      clearInterval(interval);
-      callback(el);
-    }
-  }, checkInterval);
-}
+  static waitForElement(selector, callback, checkInterval = 500) {
+    const interval = setInterval(() => {
+      if (!this.isAutomatic) return clearInterval(interval);
+      const el = document.querySelector(selector);
+      if (el) {
+        clearInterval(interval);
+        callback(el);
+      }
+    }, checkInterval);
+  }
 
-function openDungeon(index, callback) {
-  waitForElement(valhallaDungeons[index].buttonSelector, (button) => {
-    button.click();
-    waitForElement('img[src*="dungeons/select.png"]', () => {
-      callback();
+  static openDungeon(index, callback) {
+    this.waitForElement(this.valhallaDungeons[index].buttonSelector, (button) => {
+      button.click();
+      this.waitForElement('img[src*="dungeons/select.png"]', () => {
+        callback();
+      });
     });
-  });
-}
+  }
 
-function fightAllMonsters(index, callback) {
-  const baseSelector = valhallaDungeons[index].monsterContainer;
-  let currentMonster = 2;
-
-  function nextEnemy() {
-    if (!autoValhalla) return;
+  static nextEnemy(baseSelector, currentMonster, callback) {
+    if (!this.isAutomatic) return;
 
     if (currentMonster > 6) {
       callback();
@@ -407,7 +423,7 @@ function fightAllMonsters(index, callback) {
     const monsterBtn = document.querySelector(`${baseSelector} > button:nth-child(${currentMonster}) > img`);
     if (!monsterBtn || monsterBtn.parentElement.classList.contains('--disabled')) {
       currentMonster++;
-      return nextEnemy();
+      return this.nextEnemy(baseSelector, currentMonster, callback);
     }
 
     monsterBtn.click();
@@ -415,57 +431,61 @@ function fightAllMonsters(index, callback) {
     repetitiveBattleCheck(
       () => {
         currentMonster++;
-        nextEnemy();
+        this.nextEnemy(baseSelector, currentMonster, callback);
       },
       false,
       4000
     );
   }
 
-  nextEnemy();
-}
+  static fightAllMonsters(index, callback) {
+    const baseSelector = this.valhallaDungeons[index].monsterContainer;
+    let currentMonster = 2;
 
-class Valhalla {
+    this.nextEnemy(baseSelector, currentMonster, callback);
+  }
+
+  static nextDungeon() {
+    if (!this.isAutomatic) return;
+
+    if (this.currentDungeonIndex >= this.valhallaDungeons.length) {
+      document.getElementById('toggleButton')?.click();
+      this.isAutomatic = false;
+      return;
+    }
+
+    const boundCallback = this.nextDungeon.bind(this);
+    const dungeon = this.valhallaDungeons[this.currentDungeonIndex];
+
+    if (document.querySelector(dungeon.completeSelector)) {
+      this.currentDungeonIndex++;
+      return this.nextDungeon();
+    }
+
+    this.openDungeon(this.currentDungeonIndex, () => {
+      this.fightAllMonsters(this.currentDungeonIndex, () => {
+        this.currentDungeonIndex++;
+        setTimeout(boundCallback, 1000);
+      });
+    });
+  }
+
+  static battle() {
+    if (this.isAutomatic) return;
+    this.isAutomatic = true;
+    this.currentDungeonIndex = 0;
+
+    this.nextDungeon();
+  }
+
   static startAutomation() {
-    if (!autoValhalla) {
+    if (!this.isAutomatic) {
       this.battle();
     }
   }
 
   static stopAutomation() {
-    autoValhalla = false;
-  }
-
-  static battle() {
-    if (autoValhalla) return;
-    autoValhalla = true;
-    currentDungeonIndex = 0;
-
-    function nextDungeon() {
-      if (!autoValhalla) return;
-
-      if (currentDungeonIndex >= valhallaDungeons.length) {
-        document.getElementById('toggleButton')?.click();
-        autoValhalla = false;
-        return;
-      }
-
-      const dungeon = valhallaDungeons[currentDungeonIndex];
-
-      if (document.querySelector(dungeon.completeSelector)) {
-        currentDungeonIndex++;
-        return nextDungeon();
-      }
-
-      openDungeon(currentDungeonIndex, () => {
-        fightAllMonsters(currentDungeonIndex, () => {
-          currentDungeonIndex++;
-          setTimeout(nextDungeon, 1000);
-        });
-      });
-    }
-
-    nextDungeon();
+    this.isAutomatic = false;
   }
 }
 
@@ -726,6 +746,9 @@ function buttonToggle() {
       case 'sm':
         isRunning ? SlotMachine.startAutomation() : SlotMachine.stopAutomation();
         break;
+      case 'sm2':
+        isRunning ? SlotMachine.startAutomationParties() : SlotMachine.stopAutomation();
+        break;
       case 'ln':
         isRunning ? LasNoches.startAutomation() : LasNoches.stopAutomation();
         break;
@@ -755,7 +778,7 @@ function floatingUI() {
   div.style.zIndex = 99999;
   div.style.borderRadius = '8px';
   div.style.fontFamily = 'sans-serif';
-  div.style.width = '160px';
+  div.style.width = '170px';
   div.style.userSelect = 'none';
 
   // ✅ Add a draggable header
@@ -769,7 +792,7 @@ function floatingUI() {
 
   // ✅ Build inner content
   div.innerHTML = `
-      <select id="itemSelect" style="width: 100%; padding: 5px; margin-bottom: 10px; border-radius: 5px;">
+      <select id="itemSelect" style="width: 100%; padding: 5px; margin-bottom: 10px; border-radius: 5px; text-align: center; text-align-last: center;">
         <option value="" disabled selected>--Choose item first--</option>
         ${items.map((item) => `<option value="${item.id}">${item.label}</option>`).join('')}
       </select>
