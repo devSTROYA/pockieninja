@@ -491,6 +491,7 @@ class Valhalla {
 
 function showSnackbar(message, background, duration = 3000) {
   const existing = document.getElementById(SNACKBAR_ID);
+  const IS_FAILED = background === COLORS.FAILED;
 
   if (existing) {
     existing.remove();
@@ -514,7 +515,7 @@ function showSnackbar(message, background, duration = 3000) {
     left: `${snackbarCenterX}px`,
     width: 'auto',
     whiteSpace: 'nowrap',
-    transform: 'translate(-50%, -10px)',
+    transform: 'translate(-50%, 10px)',
     background,
     color: '#fff',
     padding: '8px 16px',
@@ -531,7 +532,18 @@ function showSnackbar(message, background, duration = 3000) {
 
   requestAnimationFrame(() => {
     snackbar.style.opacity = '1';
-    snackbar.style.transform = 'translate(-50%, 0)';
+
+    if (!IS_FAILED) {
+      snackbar.style.transform = 'translate(-50%, 0)';
+    } else {
+      const ANIMATION_DURATION = '0.4s';
+      snackbar.style.animation = `snackbar-shake ${ANIMATION_DURATION} ease-in-out 1`;
+
+      setTimeout(() => {
+        snackbar.style.animation = 'none';
+        snackbar.style.transform = 'translate(-50%, 0)';
+      }, 200);
+    }
   });
 
   setTimeout(() => {
@@ -736,6 +748,8 @@ function buttonToggle() {
     button.textContent = isRunning ? `Stop` : `Start`;
     button.classList.toggle('active', isRunning);
 
+    selectedItem.disabled = isRunning;
+
     switch (selectedValue) {
       case 'ex':
         isRunning ? Exploration.startAutomation() : Exploration.stopAutomation();
@@ -762,6 +776,42 @@ function buttonToggle() {
 
     showSnackbar(`${itemExist.label} automation is ${isRunning ? 'started' : 'stopped'}.`, COLORS.SUCCESS);
   });
+}
+
+function injectGlobalStyles() {
+  const style = document.createElement('style');
+  style.textContent = `
+      /* Keyframes for the Vibrate/Squeeze effect */
+      @keyframes snackbar-shake {
+        0%, 100% { transform: translate(-50%, 0); }
+        10%, 30%, 50%, 70%, 90% { transform: translate(calc(-50% - 10px), 0); }
+        20%, 40%, 60%, 80% { transform: translate(calc(-50% + 10px), 0); }
+      }
+      .auto-btn {
+        width: 100%;
+        padding: 6px 10px;
+        border: none;
+        border-radius: 5px;
+        background-color: #1e66f5;
+        color: white;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.2s ease-in-out;
+      }
+      .auto-btn.enabled {
+        opacity: 1;
+      }
+      .auto-btn:hover:enabled {
+        background-color: #0a4ed6;
+      }
+      .auto-btn.active {
+        background-color: #e64553;
+      }
+      .auto-btn.active:hover {
+        background-color: #dc1e2e;
+      }
+  `;
+  document.head.appendChild(style);
 }
 
 function floatingUI() {
@@ -793,35 +843,10 @@ function floatingUI() {
   // ✅ Build inner content
   div.innerHTML = `
       <select id="itemSelect" style="width: 100%; padding: 5px; margin-bottom: 10px; border-radius: 5px; text-align: center; text-align-last: center;">
-        <option value="" disabled selected>--Choose item first--</option>
+        <option value="" disabled selected>-- Choose item first --</option>
         ${items.map((item) => `<option value="${item.id}">${item.label}</option>`).join('')}
       </select>
       <button id="toggleButton" class="auto-btn">Start</button>
-      <style>
-        .auto-btn {
-          width: 100%;
-          padding: 6px 10px;
-          border: none;
-          border-radius: 5px;
-          background-color: #1e66f5;
-          color: white;
-          font-size: 13px;
-          cursor: pointer;
-          transition: 0.2s ease-in-out;
-        }
-        .auto-btn.enabled {
-          opacity: 1;
-        }
-        .auto-btn:hover:enabled {
-          background-color: #0a4ed6;
-        }
-        .auto-btn.active {
-          background-color: #e64553;
-        }
-        .auto-btn.active:hover {
-          background-color: #dc1e2e;
-        }
-      </style>
     `;
 
   div.prepend(header);
@@ -834,6 +859,8 @@ function floatingUI() {
 
 (function () {
   'use strict';
+
+  injectGlobalStyles();
 
   floatingUI();
 })();
