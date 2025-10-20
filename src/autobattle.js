@@ -3,11 +3,15 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.0.1
+// @version      1.0.3
 // @match        *://s01.pockieninja.online/
 // @grant        none
-// @changelog    1.0.1 - Fix Valhalla
 // ==/UserScript==
+
+// changelog    1.0.0 - Initial release
+// changelog    1.0.1 - Fix Valhalla
+// changelog    1.0.2 - Fix Las Noches
+// changelog    1.0.3 - Fix Z Index Floating UI Behind Chat Panel
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -646,8 +650,6 @@ function buttonToggle() {
 
   const button = document.getElementById('toggleButton');
   const selectedItem = document.getElementById('itemSelect');
-  const selectedValue = selectedItem.value;
-  const itemExist = items.find((i) => i.id === selectedValue);
 
   window.autoBattleRetryLogic = () => {
     if (isRunning && !isRetrying) {
@@ -750,7 +752,7 @@ function floatingUI() {
   }
   div.style.background = 'rgba(0, 0, 0, 0.5)';
   div.style.padding = '12px';
-  div.style.zIndex = 9999;
+  div.style.zIndex = 99999;
   div.style.borderRadius = '8px';
   div.style.fontFamily = 'sans-serif';
   div.style.width = '160px';
