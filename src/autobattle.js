@@ -357,7 +357,10 @@ class LasNoches {
   }
 
   static startAutomation() {
-    if (this.isAutomatic) return;
+    if (this.isAutomatic) {
+      showSnackbar('Las Noches automation started...', COLORS.SUCCESS);
+      this.startOrContinue();
+    }
 
     const userInput = prompt('Input floor destination (ex: 170):', '170');
     const parsedFloor = parseInt(userInput, 10);
