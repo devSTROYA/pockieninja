@@ -332,6 +332,7 @@ class LasNoches {
 
       if (currentFloor === this.targetFloor) {
         document.getElementById('toggleButton')?.click();
+        this.isFailureTriggered = false;
         this.isAutomatic = false;
         return;
       }
