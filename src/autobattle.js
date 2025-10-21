@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.1.0
+// @version      1.4.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -15,6 +15,7 @@
 // changelog    1.1.0 - Add Parties Automation for Slot Machine
 // changelog    1.2.0 - Disable Select When Automation Start And Improve Snackbar Failed Effect
 // changelog    1.3.0 - Make domain works for wildcard
+// changelog    1.4.0 - Add retry mechanism for Valhalla
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -423,6 +424,8 @@ class Valhalla {
     }
 
     const monsterBtn = document.querySelector(`${baseSelector} > button:nth-child(${currentMonster}) > img`);
+    const boundCallback = this.nextEnemy.bind(this, baseSelector, currentMonster, callback);
+
     if (!monsterBtn || monsterBtn.parentElement.classList.contains('--disabled')) {
       currentMonster++;
       return this.nextEnemy(baseSelector, currentMonster, callback);
@@ -430,14 +433,16 @@ class Valhalla {
 
     monsterBtn.click();
 
-    repetitiveBattleCheck(
-      () => {
+    setTimeout(() => {
+      const battleRunning = document.querySelector('#fightContainer');
+
+      if (!battleRunning) {
+        window.autoBattleRetryLogic();
+      } else {
         currentMonster++;
-        this.nextEnemy(baseSelector, currentMonster, callback);
-      },
-      false,
-      4000
-    );
+        repetitiveBattleCheck(boundCallback, false, 4000);
+      }
+    }, 1500);
   }
 
   static fightAllMonsters(index, callback) {
@@ -450,13 +455,22 @@ class Valhalla {
   static nextDungeon() {
     if (!this.isAutomatic) return;
 
+    const monsterSelectPanelSelector = 'img[src*="dungeons/select.png"]';
+    const boundCallback = this.nextDungeon.bind(this);
+
+    if (document.querySelector(monsterSelectPanelSelector)) {
+      return this.fightAllMonsters(this.currentDungeonIndex, () => {
+        this.currentDungeonIndex++;
+        setTimeout(boundCallback, 1000);
+      });
+    }
+
     if (this.currentDungeonIndex >= this.valhallaDungeons.length) {
       document.getElementById('toggleButton')?.click();
       this.isAutomatic = false;
       return;
     }
 
-    const boundCallback = this.nextDungeon.bind(this);
     const dungeon = this.valhallaDungeons[this.currentDungeonIndex];
 
     if (document.querySelector(dungeon.completeSelector)) {
