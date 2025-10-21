@@ -13,6 +13,7 @@
 // changelog    1.0.2 - Fix Las Noches
 // changelog    1.0.3 - Fix Z Index Floating UI Behind Chat Panel
 // changelog    1.1.0 - Add Parties Automation for Slot Machine
+// changelog    1.2.0 - Disable Select When Automation Start And Improve Snackbar Failed Effect
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
