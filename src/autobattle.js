@@ -17,6 +17,7 @@
 // changelog    1.3.0 - Make Domain Wildcard
 // changelog    1.4.0 - Add Retry Mechanism for Valhalla
 // changelog    1.5.0 - Refactor Las Noches Automation
+// changelog    1.6.0 - Add Retry Mechanism for Las Noches
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -222,7 +223,7 @@ class SoulDemonBlade {
           if (this.isAutomatic) {
             this.farmingLoop = setTimeout(boundCallback, this.loopInterval);
           }
-        });
+        }, false);
       }, this.battleDuration);
     }, this.clickDelay);
   }
@@ -293,10 +294,14 @@ class Exploration {
     }
 
     if (this.clickMonster(this.selectedMonsterIndex)) {
-      repetitiveBattleCheck(() => {
-        this.currentBattleCount++;
-        setTimeout(boundCallback, 1000);
-      }, 500);
+      repetitiveBattleCheck(
+        () => {
+          this.currentBattleCount++;
+          setTimeout(boundCallback, 1000);
+        },
+        false,
+        500
+      );
     } else {
       showSnackbar('Monster cannot be clicked. Try again in 2 seconds.', COLORS.FAILED);
       setTimeout(boundCallback, 2000);
@@ -337,7 +342,17 @@ class LasNoches {
 
     if (button) {
       button.click();
-      repetitiveBattleCheck(boundCallback, false, 500);
+
+      setTimeout(() => {
+        const battleRunning = document.querySelector('#fightContainer');
+
+        if (!battleRunning) {
+          window.autoBattleRetryLogic();
+          return;
+        }
+
+        repetitiveBattleCheck(boundCallback, false, 1500);
+      }, 1500);
     }
   }
 
