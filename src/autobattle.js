@@ -4,7 +4,7 @@
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
 // @version      1.1.0
-// @match        *://s01.pockieninja.online/
+// @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
 
