@@ -316,6 +316,7 @@ class Exploration {
 class LasNoches {
   static isAutomatic = false;
   static targetFloor = 170;
+  static isFailureTriggered = false;
 
   static startOrContinue() {
     if (!this.isAutomatic) return;
@@ -347,6 +348,7 @@ class LasNoches {
         const battleRunning = document.querySelector('#fightContainer');
 
         if (!battleRunning) {
+          this.isFailureTriggered = true;
           window.autoBattleRetryLogic();
           return;
         }
@@ -357,25 +359,27 @@ class LasNoches {
   }
 
   static startAutomation() {
-    if (this.isAutomatic) {
+    if (this.isAutomatic) return;
+
+    if (this.isFailureTriggered) {
+      this.isFailureTriggered = false;
+      this.startOrContinue();
+    } else {
+      const userInput = prompt('Input floor destination (ex: 170):', '170');
+      const parsedFloor = parseInt(userInput, 10);
+
+      if (!isNaN(parsedFloor) && parsedFloor > 0) {
+        this.targetFloor = parsedFloor;
+      } else {
+        showSnackbar('Invalid. Use positive numbers.');
+        document.getElementById('toggleButton')?.click();
+        return;
+      }
+
+      this.isAutomatic = true;
       showSnackbar('Las Noches automation started...', COLORS.SUCCESS);
       this.startOrContinue();
     }
-
-    const userInput = prompt('Input floor destination (ex: 170):', '170');
-    const parsedFloor = parseInt(userInput, 10);
-
-    if (!isNaN(parsedFloor) && parsedFloor > 0) {
-      this.targetFloor = parsedFloor;
-    } else {
-      showSnackbar('Invalid. Use positive numbers.');
-      document.getElementById('toggleButton')?.click();
-      return;
-    }
-
-    this.isAutomatic = true;
-    showSnackbar('Las Noches automation started...', COLORS.SUCCESS);
-    this.startOrContinue();
   }
 
   static stopAutomation() {
