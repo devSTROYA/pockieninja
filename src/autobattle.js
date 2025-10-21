@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.4.0
+// @version      1.5.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -14,8 +14,9 @@
 // changelog    1.0.3 - Fix Z Index Floating UI Behind Chat Panel
 // changelog    1.1.0 - Add Parties Automation for Slot Machine
 // changelog    1.2.0 - Disable Select When Automation Start And Improve Snackbar Failed Effect
-// changelog    1.3.0 - Make domain works for wildcard
-// changelog    1.4.0 - Add retry mechanism for Valhalla
+// changelog    1.3.0 - Make Domain Wildcard
+// changelog    1.4.0 - Add Retry Mechanism for Valhalla
+// changelog    1.5.0 - Refactor Las Noches Automation
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -330,13 +331,9 @@ class LasNoches {
       }
     }
 
-    let button =
-      [...document.querySelectorAll('button')].find(
-        (btn) => btn.textContent.trim() === 'Continue' && btn.classList.contains('theme__button--original')
-      ) ||
-      [...document.querySelectorAll('button')].find(
-        (btn) => btn.textContent.trim() === 'Start' && btn.classList.contains('theme__button--original')
-      );
+    const button = [...document.querySelectorAll('button.theme__button--original')].find((btn) =>
+      ['continue', 'start'].includes(btn.textContent.trim().toLowerCase())
+    );
 
     if (button) {
       button.click();
