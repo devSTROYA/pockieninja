@@ -364,7 +364,6 @@ class LasNoches {
 
     if (this.isFailureTriggered) {
       this.isFailureTriggered = false;
-      this.startOrContinue();
     } else {
       const userInput = prompt('Input floor destination (ex: 170):', '170');
       const parsedFloor = parseInt(userInput, 10);
