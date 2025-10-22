@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.5.0
+// @version      1.6.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
