@@ -375,11 +375,11 @@ class LasNoches {
         document.getElementById('toggleButton')?.click();
         return;
       }
-
-      this.isAutomatic = true;
-      showSnackbar('Las Noches automation started...', COLORS.SUCCESS);
-      this.startOrContinue();
     }
+
+    this.isAutomatic = true;
+    showSnackbar('Las Noches automation started...', COLORS.SUCCESS);
+    this.startOrContinue();
   }
 
   static stopAutomation() {
