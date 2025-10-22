@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.8.0
+// @version      1.9.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -20,6 +20,7 @@
 // changelog    1.6.0 - Add Retry Mechanism for Las Noches
 // changelog    1.7.0 - Refactor Entire Code
 // changelog    1.8.0 - Add Automation for Ninja Trial
+// changelog    1.9.0 - Fix Soulblade Demon Automation
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -338,7 +339,7 @@ class SoulDemonBlade {
     this.isAutomatic = true;
 
     if (!this.farmingLoop) {
-      this.farmingLoop = setTimeout(this.runLoop, this.loopInterval);
+      this.farmingLoop = setTimeout(this.runLoop(), this.loopInterval);
     }
   }
 
