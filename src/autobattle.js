@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.6.0
+// @version      1.8.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -18,12 +18,23 @@
 // changelog    1.4.0 - Add Retry Mechanism for Valhalla
 // changelog    1.5.0 - Refactor Las Noches Automation
 // changelog    1.6.0 - Add Retry Mechanism for Las Noches
+// changelog    1.7.0 - Refactor Entire Code
+// changelog    1.8.0 - Add Automation for Ninja Trial
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
   FAILED: 'rgba(230, 69, 83, 0.9)',
 };
-
+const items = [
+  { id: 'ex', label: 'Exploration' },
+  { id: 'sd', label: 'Soulblade Demon' },
+  { id: 'sm', label: 'Slot Machine - Leader' },
+  { id: 'sm2', label: 'Slot Machine - Parties' },
+  { id: 'ln', label: 'Las Noches' },
+  { id: 'vh', label: 'Valhalla' },
+  { id: 'nt', label: 'Ninja Trial - Leader' },
+  { id: 'nt2', label: 'Ninja Trial - Parties' },
+];
 const DEFAULT_TOP = 780;
 const DEFAULT_LEFT = 'auto';
 const SNACKBAR_ID = 'SNACKBAR';
@@ -34,15 +45,110 @@ const AUTO_UI_LEFT = 'autoBattle_uiLeft';
 const uiTop = parseFloat(localStorage.getItem(AUTO_UI_TOP)) || DEFAULT_TOP;
 const uiLeft = parseFloat(localStorage.getItem(AUTO_UI_LEFT)) || DEFAULT_LEFT;
 
-const items = [
-  { id: 'ex', label: 'Exploration' },
-  { id: 'sd', label: 'Soulblade Demon' },
-  { id: 'sm', label: 'Slot Machine - Leader' },
-  { id: 'sm2', label: 'Slot Machine - Parties' },
-  { id: 'ln', label: 'Las Noches' },
-  { id: 'vh', label: 'Valhalla' },
-  { id: 'nt', label: 'Ninja Trial' },
-];
+class TeamStone {
+  static simulateRealClick(el) {
+    ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click'].forEach((type) => {
+      el.dispatchEvent(
+        new MouseEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        })
+      );
+    });
+  }
+
+  static normalizeText(s) {
+    return (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  static clickByTextInPanel(text = 'heal', selectorParent = '.panel--original', childSelector = '.clickable') {
+    const panels = document.querySelectorAll(selectorParent);
+    for (const panel of panels) {
+      const target = Array.from(panel.querySelectorAll(childSelector)).find(
+        (el) => this.normalizeText(el.textContent) === text.toLowerCase()
+      );
+      if (target) {
+        target.click();
+        return target;
+      }
+    }
+    return null;
+  }
+
+  static open() {
+    const ids = [
+      27500, // teamstone
+    ];
+    const selector = ids.map((id) => `#npc-container-${id} canvas`).join(', ');
+    const npcCanvas = document.querySelector(selector);
+
+    if (!npcCanvas) {
+      showSnackbar('Team Stone canvas not found.');
+      return;
+    }
+
+    const rect = npcCanvas.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const events = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click'];
+    events.forEach((type) => {
+      const evt = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: centerX,
+        clientY: centerY,
+        view: window,
+      });
+
+      Object.defineProperty(evt, 'offsetX', { get: () => rect.width / 2 });
+      Object.defineProperty(evt, 'offsetY', { get: () => rect.height / 2 });
+
+      npcCanvas.dispatchEvent(evt);
+    });
+  }
+
+  static heal() {
+    this.open();
+
+    setTimeout(() => {
+      const el = this.clickByTextInPanel('heal') || null;
+      if (!el) {
+        this.simulateRealClick(el);
+      }
+
+      showSnackbar('Heal success...', COLORS.SUCCESS);
+      return;
+    }, 1000);
+  }
+
+  static repair() {
+    this.open();
+
+    setTimeout(() => {
+      const el = this.clickByTextInPanel('repair all') || null;
+      if (!el) {
+        this.simulateRealClick(el);
+      }
+
+      showSnackbar('Repair success...', COLORS.SUCCESS);
+      return;
+    }, 1000);
+  }
+
+  static ninjaTrial() {
+    this.open();
+
+    setTimeout(() => {
+      const el = this.clickByTextInPanel(`ninja's trial`) || null;
+      if (!el) {
+        this.simulateRealClick(el);
+      }
+      return;
+    }, 1000);
+  }
+}
 
 class SlotMachine {
   static isAutomatic = false;
@@ -524,6 +630,57 @@ class Valhalla {
   }
 }
 
+class NinjaTrial {
+  static isAutomatic = false;
+  static trialInterval = null;
+
+  static startAutomationParties() {
+    if (!this.isAutomatic) {
+      this.isAutomatic = true;
+      this.applyTrialAsParties();
+    }
+  }
+
+  static startAutomation() {
+    if (!this.isAutomatic) {
+      this.isAutomatic = true;
+      this.applyTrial();
+    }
+  }
+
+  static stopAutomation() {
+    this.isAutomatic = false;
+  }
+
+  static applyTrial() {
+    if (!this.isAutomatic) return;
+
+    const boundCallback = this.applyTrial.bind(this);
+    const buttons = [...document.querySelectorAll('button')];
+    const applyBtn = buttons.find((b) => b.textContent.trim() === 'Apply Trial');
+
+    if (!applyBtn.disabled) {
+      applyBtn.click();
+    } else {
+      window.autoBattleRetryLogic();
+      return;
+    }
+
+    repetitiveBattleCheck(boundCallback, true, 2000);
+    return;
+  }
+
+  static applyTrialAsParties() {
+    if (!this.isAutomatic) return;
+
+    const boundCallback = this.applyTrialAsParties.bind(this);
+
+    setTimeout(() => {
+      repetitiveBattleCheck(boundCallback, true, 1500);
+    }, 3000);
+  }
+}
+
 function showSnackbar(message, background, duration = 3000) {
   const existing = document.getElementById(SNACKBAR_ID);
   const IS_FAILED = background === COLORS.FAILED;
@@ -621,77 +778,6 @@ function makeDraggable(element, handle) {
   }
 }
 
-function heal() {
-  function teamStone() {
-    const ids = [
-      27500, // teamstone
-    ];
-    const selector = ids.map((id) => `#npc-container-${id} canvas`).join(', ');
-    const npcCanvas = document.querySelector(selector);
-
-    if (!npcCanvas) {
-      showSnackbar('Team Stone canvas not found.');
-      return;
-    }
-
-    const rect = npcCanvas.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    const events = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click'];
-    events.forEach((type) => {
-      const evt = new MouseEvent(type, {
-        bubbles: true,
-        cancelable: true,
-        clientX: centerX,
-        clientY: centerY,
-        view: window,
-      });
-
-      Object.defineProperty(evt, 'offsetX', { get: () => rect.width / 2 });
-      Object.defineProperty(evt, 'offsetY', { get: () => rect.height / 2 });
-
-      npcCanvas.dispatchEvent(evt);
-    });
-  }
-
-  function normalizeText(s) {
-    return (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
-  }
-
-  function clickByTextInPanel(text = 'heal', selectorParent = '.panel--original', childSelector = '.clickable') {
-    const panels = document.querySelectorAll(selectorParent);
-    for (const panel of panels) {
-      const target = Array.from(panel.querySelectorAll(childSelector)).find(
-        (el) => normalizeText(el.textContent) === text.toLowerCase()
-      );
-      if (target) {
-        target.click();
-        return target;
-      }
-    }
-    return null;
-  }
-
-  function simulateRealClick(el) {
-    ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click'].forEach((type) => {
-      el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
-    });
-  }
-
-  teamStone();
-
-  setTimeout(() => {
-    const el = clickByTextInPanel() || null;
-    if (!el) {
-      simulateRealClick(el);
-    }
-
-    showSnackbar('Heal success...', COLORS.SUCCESS);
-    return;
-  }, 1000);
-}
-
 function repetitiveBattleCheck(callback, isNeedHeal = false, delay = 500) {
   let checkInterval = setInterval(() => {
     let buttons = document.querySelectorAll('.theme__button--original');
@@ -700,7 +786,7 @@ function repetitiveBattleCheck(callback, isNeedHeal = false, delay = 500) {
         button.click();
         showSnackbar('Battle end.', COLORS.SUCCESS);
         if (isNeedHeal) {
-          heal();
+          TeamStone.heal();
         }
         clearInterval(checkInterval);
         setTimeout(callback, delay);
@@ -738,9 +824,9 @@ function buttonToggle() {
         case 'vh':
           Valhalla.stopAutomation();
           break;
-        // case 'nt':
-        //   startAutoBattleNT();
-        //   break;
+        case 'nt':
+          NinjaTrial.stopAutomation();
+          break;
       }
 
       let countdown = 3;
@@ -804,9 +890,12 @@ function buttonToggle() {
       case 'vh':
         isRunning ? Valhalla.startAutomation() : Valhalla.stopAutomation();
         break;
-      // case 'nt':
-      //   isRunning ? startAutoBattleNT() : stopAutoBattleNT();
-      //   break;
+      case 'nt':
+        isRunning ? NinjaTrial.startAutomation() : NinjaTrial.stopAutomation();
+        break;
+      case 'nt2':
+        isRunning ? NinjaTrial.startAutomationParties() : NinjaTrial.stopAutomation();
+        break;
     }
 
     showSnackbar(`${itemExist.label} automation is ${isRunning ? 'started' : 'stopped'}.`, COLORS.SUCCESS);
@@ -896,6 +985,5 @@ function floatingUI() {
   'use strict';
 
   injectGlobalStyles();
-
   floatingUI();
 })();
