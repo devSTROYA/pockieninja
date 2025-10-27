@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.9.0
+// @version      1.10.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -22,6 +22,7 @@
 // changelog    1.8.0 - Add Automation for Ninja Trial
 // changelog    1.8.1 - Fix Soulblade Demon Automation
 // changelog    1.9.0 - Add Dark Theme Support
+// changelog    1.10.0 - Add Automation for Impel Down
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -36,6 +37,7 @@ const items = [
   { id: 'vh', label: 'Valhalla' },
   { id: 'nt', label: 'Ninja Trial - Leader' },
   { id: 'nt2', label: 'Ninja Trial - Parties' },
+  { id: 'id', label: 'Impel Down' },
 ];
 const DEFAULT_TOP = 780;
 const DEFAULT_LEFT = 'auto';
@@ -444,7 +446,7 @@ class LasNoches {
       let currentFloor = parseInt(floorElement.textContent.replace('Current Floor', '').trim(), 10);
 
       if (currentFloor === this.targetFloor) {
-        document.getElementById('toggleButton')?.click();
+        document.getElementById('toggleButton').click();
         this.isFailureTriggered = false;
         this.isAutomatic = false;
         return;
@@ -689,6 +691,99 @@ class NinjaTrial {
   }
 }
 
+class ImpelDown {
+  static isAutomatic = false;
+
+  static getCurrentFloor() {
+    const currentPre = [...document.querySelectorAll('pre')].find((pre) => pre.textContent.trim() === 'Current');
+
+    if (!currentPre) {
+      return 0;
+    }
+
+    const containerDiv = currentPre.parentElement;
+    const floorInfoDiv = containerDiv.nextElementSibling;
+
+    if (!floorInfoDiv) {
+      return 0;
+    }
+
+    const floorPre = floorInfoDiv.querySelector('pre');
+    const floorText = floorPre ? floorPre.textContent : '';
+    const match = floorText.match(/Floor\s(\d+)/i);
+
+    if (match && match[1]) {
+      const floorNumber = parseInt(match[1], 10);
+      return floorNumber;
+    }
+
+    return 0;
+  }
+
+  static startAutomation() {
+    if (!this.isAutomatic) {
+      this.isAutomatic = true;
+      this.clickImpelDownFloor();
+    }
+  }
+
+  static stopAutomation() {
+    this.isAutomatic = false;
+  }
+
+  static clickImpelDownFloor() {
+    if (!this.isAutomatic) return;
+
+    const boundCallback = this.clickImpelDownFloor.bind(this);
+    const floorNumber = this.getCurrentFloor();
+
+    if (!floorNumber) {
+      showSnackbar('Please Open Impel Down first.', COLORS.FAILED);
+      return;
+    }
+
+    if (floorNumber === 26) {
+      document.getElementById('toggleButton').click();
+      this.isAutomatic = false;
+      return;
+    }
+
+    const targetText = `Floor ${floorNumber}`;
+    const imageSelector = 'img[src*="/UIResource/ImpelDown/prisonfloor.png"].j-image.clickable';
+    const clickableImages = document.querySelectorAll(imageSelector);
+
+    let targetImage = null;
+
+    for (const image of clickableImages) {
+      const parentDiv = image.parentElement;
+
+      if (parentDiv) {
+        const preElement = parentDiv.querySelector('pre');
+
+        if (preElement && preElement.textContent.trim().startsWith(targetText)) {
+          targetImage = image;
+          break;
+        }
+      }
+    }
+
+    if (targetImage) {
+      targetImage.click();
+
+      setTimeout(() => {
+        const battleRunning = document.querySelector('#fightContainer');
+
+        if (!battleRunning) {
+          window.autoBattleRetryLogic();
+          return;
+        }
+
+        repetitiveBattleCheck(boundCallback, false, 1500);
+      }, 1500);
+    }
+  }
+}
+
 function showSnackbar(message, background, duration = 3000) {
   const existing = document.getElementById(SNACKBAR_ID);
   const IS_FAILED = background === COLORS.FAILED;
@@ -835,6 +930,9 @@ function buttonToggle() {
         case 'nt':
           NinjaTrial.stopAutomation();
           break;
+        case 'id':
+          ImpelDown.stopAutomation();
+          break;
       }
 
       let countdown = 3;
@@ -903,6 +1001,9 @@ function buttonToggle() {
         break;
       case 'nt2':
         isRunning ? NinjaTrial.startAutomationParties() : NinjaTrial.stopAutomation();
+        break;
+      case 'id':
+        isRunning ? ImpelDown.startAutomation() : ImpelDown.stopAutomation();
         break;
     }
 
