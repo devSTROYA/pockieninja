@@ -686,12 +686,11 @@ class NinjaTrial {
       }, 1500);
       return;
     } else {
-      showSnackbar('Trial Not Started Yet.', COLORS.FAILED);
+      setTimeout(() => {
+        document.getElementById('toggleButton').click();
+      }, 3000);
       return;
     }
-
-    repetitiveBattleCheck(boundCallback, true, 2000);
-    return;
   }
 
   static applyTrialAsParties() {
