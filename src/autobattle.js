@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.10.0
+// @version      1.10.1
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -23,6 +23,7 @@
 // changelog    1.8.1 - Fix Soulblade Demon Automation
 // changelog    1.9.0 - Add Dark Theme Support
 // changelog    1.10.0 - Add Automation for Impel Down
+// changelog    1.10.1 - Fix Ninja Trial Automation
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -671,8 +672,21 @@ class NinjaTrial {
 
     if (!applyBtn.disabled) {
       applyBtn.click();
+
+      setTimeout(() => {
+        const buttons = [...document.querySelectorAll('button')];
+        const applyBtn = buttons.find((b) => b.textContent.trim() === 'Exit Trial');
+
+        if (!applyBtn) {
+          window.autoBattleRetryLogic();
+          return;
+        }
+
+        repetitiveBattleCheck(boundCallback, true, 1500);
+      }, 1500);
+      return;
     } else {
-      window.autoBattleRetryLogic();
+      showSnackbar('Trial Not Started Yet.', COLORS.FAILED);
       return;
     }
 
