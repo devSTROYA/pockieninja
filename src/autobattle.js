@@ -20,7 +20,8 @@
 // changelog    1.6.0 - Add Retry Mechanism for Las Noches
 // changelog    1.7.0 - Refactor Entire Code
 // changelog    1.8.0 - Add Automation for Ninja Trial
-// changelog    1.9.0 - Fix Soulblade Demon Automation
+// changelog    1.8.1 - Fix Soulblade Demon Automation
+// changelog    1.9.0 - Add Dark Theme Support
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -63,8 +64,13 @@ class TeamStone {
     return (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
   }
 
-  static clickByTextInPanel(text = 'heal', selectorParent = '.panel--original', childSelector = '.clickable') {
+  static clickByTextInPanel(
+    text = 'heal',
+    selectorParent = '.panel--original, .panel--dark',
+    childSelector = '.clickable'
+  ) {
     const panels = document.querySelectorAll(selectorParent);
+
     for (const panel of panels) {
       const target = Array.from(panel.querySelectorAll(childSelector)).find(
         (el) => this.normalizeText(el.textContent) === text.toLowerCase()
@@ -85,7 +91,7 @@ class TeamStone {
     const npcCanvas = document.querySelector(selector);
 
     if (!npcCanvas) {
-      showSnackbar('Team Stone canvas not found.');
+      showSnackbar('Team Stone canvas not found.', COLORS.FAILED);
       return;
     }
 
@@ -445,7 +451,8 @@ class LasNoches {
       }
     }
 
-    const button = [...document.querySelectorAll('button.theme__button--original')].find((btn) =>
+    const selector = 'button.theme__button--original, button.theme__button--dark';
+    const button = [...document.querySelectorAll(selector)].find((btn) =>
       ['continue', 'start'].includes(btn.textContent.trim().toLowerCase())
     );
 
@@ -781,7 +788,7 @@ function makeDraggable(element, handle) {
 
 function repetitiveBattleCheck(callback, isNeedHeal = false, delay = 500) {
   let checkInterval = setInterval(() => {
-    let buttons = document.querySelectorAll('.theme__button--original');
+    let buttons = document.querySelectorAll('.theme__button--original, .theme__button--dark');
     for (let button of buttons) {
       if (button.textContent.trim() === 'Close') {
         button.click();
