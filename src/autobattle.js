@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.10.1
+// @version      1.12.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -24,6 +24,10 @@
 // changelog    1.9.0 - Add Dark Theme Support
 // changelog    1.10.0 - Add Automation for Impel Down
 // changelog    1.10.1 - Fix Ninja Trial Automation
+// changelog    1.11.0 - Add Floor Destination Input for Impel Down
+// changelog    1.12.0 - a. Enhance Snackbar Functionality
+// changelog    1.12.0 - b. Make Ninja Trial Attempts On Background (Dont Rely To Teamstone)
+// changelog    1.12.0 - c. Increase Timeout for Impel Down to reduce retry
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -43,8 +47,8 @@ const items = [
 const DEFAULT_TOP = 780;
 const DEFAULT_LEFT = 'auto';
 const SNACKBAR_ID = 'SNACKBAR';
-const FLOATING_UI_ID = 'FLOATING_UI';
 const AUTO_SNACKBAR = 'autoBattleSnackbar';
+const FLOATING_UI_ID = 'FLOATING_UI';
 const AUTO_UI_TOP = 'autoBattle_uiTop';
 const AUTO_UI_LEFT = 'autoBattle_uiLeft';
 const uiTop = parseFloat(localStorage.getItem(AUTO_UI_TOP)) || DEFAULT_TOP;
@@ -167,6 +171,7 @@ class SlotMachine {
   static startAutomationParties() {
     if (!this.isAutomatic) {
       this.isAutomatic = true;
+      showSnackbar('Slot Machine Parties automation started...', COLORS.SUCCESS);
       this.challengeAsParties();
     }
   }
@@ -174,12 +179,17 @@ class SlotMachine {
   static startAutomation() {
     if (!this.isAutomatic) {
       this.isAutomatic = true;
+      showSnackbar('Slot Machine Leader automation started...', COLORS.SUCCESS);
       this.challenge();
     }
   }
 
-  static stopAutomation() {
+  static stopAutomation(withSnackbar = true) {
     this.isAutomatic = false;
+
+    if (withSnackbar) {
+      showSnackbar('Slot Machine automation stopped...', COLORS.SUCCESS);
+    }
   }
 
   static challengeAsParties() {
@@ -346,14 +356,19 @@ class SoulDemonBlade {
 
   static startAutomation() {
     this.isAutomatic = true;
+    showSnackbar('Soulblade demon automation started...', COLORS.SUCCESS);
 
     if (!this.farmingLoop) {
       this.farmingLoop = setTimeout(this.runLoop(), this.loopInterval);
     }
   }
 
-  static stopAutomation() {
+  static stopAutomation(withSnackbar = true) {
     this.isAutomatic = false;
+
+    if (withSnackbar) {
+      showSnackbar('Soulblade demon automation stopped...', COLORS.SUCCESS);
+    }
 
     if (this.farmingLoop) {
       clearTimeout(this.farmingLoop);
@@ -406,6 +421,7 @@ class Exploration {
 
     if (!this.isAutomatic || this.currentBattleCount >= this.maxBattleCount) {
       this.isAutomatic = false;
+      showSnackbar('Exploration automation started...', COLORS.SUCCESS);
       return;
     }
 
@@ -424,8 +440,12 @@ class Exploration {
     }
   }
 
-  static stopAutomation() {
+  static stopAutomation(withSnackbar = true) {
     this.isAutomatic = false;
+
+    if (withSnackbar) {
+      showSnackbar('Exploration automation stopped...', COLORS.SUCCESS);
+    }
   }
 }
 
@@ -499,9 +519,12 @@ class LasNoches {
     this.startOrContinue();
   }
 
-  static stopAutomation() {
+  static stopAutomation(withSnackbar = true) {
     this.isAutomatic = false;
-    showSnackbar('Las Noches automation stopped...', COLORS.SUCCESS);
+
+    if (withSnackbar) {
+      showSnackbar('Las Noches automation stopped...', COLORS.SUCCESS);
+    }
   }
 }
 
@@ -632,12 +655,17 @@ class Valhalla {
 
   static startAutomation() {
     if (!this.isAutomatic) {
+      showSnackbar('Valhalla automation started...', COLORS.SUCCESS);
       this.battle();
     }
   }
 
-  static stopAutomation() {
+  static stopAutomation(withSnackbar = true) {
     this.isAutomatic = false;
+
+    if (withSnackbar) {
+      showSnackbar('Valhalla automation stopped...', COLORS.SUCCESS);
+    }
   }
 }
 
@@ -648,6 +676,7 @@ class NinjaTrial {
   static startAutomationParties() {
     if (!this.isAutomatic) {
       this.isAutomatic = true;
+      showSnackbar('Ninja Trial Parties automation started...', COLORS.SUCCESS);
       this.applyTrialAsParties();
     }
   }
@@ -655,42 +684,44 @@ class NinjaTrial {
   static startAutomation() {
     if (!this.isAutomatic) {
       this.isAutomatic = true;
+      showSnackbar('Ninja Trial Leader automation started...', COLORS.SUCCESS);
       this.applyTrial();
     }
   }
 
-  static stopAutomation() {
+  static stopAutomation(withSnackbar = true) {
     this.isAutomatic = false;
+
+    if (this.trialInterval) {
+      clearInterval(this.trialInterval);
+      this.trialInterval = null;
+    }
+
+    if (withSnackbar) {
+      showSnackbar('Ninja Trial automation stopped...', COLORS.SUCCESS);
+    }
   }
 
   static applyTrial() {
     if (!this.isAutomatic) return;
 
-    const boundCallback = this.applyTrial.bind(this);
-    const buttons = [...document.querySelectorAll('button')];
-    const applyBtn = buttons.find((b) => b.textContent.trim() === 'Apply Trial');
+    this.trialInterval = setInterval(() => {
+      const buttons = [...document.querySelectorAll('button')];
+      const applyBtn = buttons.find((b) => b.textContent.trim() === 'Apply Trial');
 
-    if (!applyBtn.disabled) {
-      applyBtn.click();
+      if (applyBtn) {
+        applyBtn.click();
+        return;
+      }
 
-      setTimeout(() => {
-        const buttons = [...document.querySelectorAll('button')];
-        const applyBtn = buttons.find((b) => b.textContent.trim() === 'Exit Trial');
-
-        if (!applyBtn) {
-          window.autoBattleRetryLogic();
-          return;
-        }
-
-        repetitiveBattleCheck(boundCallback, true, 1500);
-      }, 1500);
-      return;
-    } else {
-      setTimeout(() => {
-        document.getElementById('toggleButton').click();
-      }, 3000);
-      return;
-    }
+      const closeBtn = buttons.find((b) => b.textContent.trim() === 'Close');
+      if (closeBtn) {
+        console.log('[AutoBattle] Klik Close');
+        closeBtn.click();
+        TeamStone.heal();
+        return;
+      }
+    }, 2000);
   }
 
   static applyTrialAsParties() {
@@ -706,6 +737,8 @@ class NinjaTrial {
 
 class ImpelDown {
   static isAutomatic = false;
+  static targetFloor = 25;
+  static isFailureTriggered = false;
 
   static getCurrentFloor() {
     const currentPre = [...document.querySelectorAll('pre')].find((pre) => pre.textContent.trim() === 'Current');
@@ -734,34 +767,56 @@ class ImpelDown {
   }
 
   static startAutomation() {
-    if (!this.isAutomatic) {
-      this.isAutomatic = true;
-      this.clickImpelDownFloor();
+    if (this.isAutomatic) return;
+
+    if (this.isFailureTriggered) {
+      this.isFailureTriggered = false;
+    } else {
+      const userInput = prompt('Input floor destination (ex: 25):', '25');
+      const parsedFloor = parseInt(userInput, 10);
+
+      if (!isNaN(parsedFloor) && parsedFloor > 0) {
+        this.targetFloor = parsedFloor;
+      } else {
+        showSnackbar('Invalid. Use positive numbers.');
+        document.getElementById('toggleBtn').click();
+        return;
+      }
     }
+
+    this.isAutomatic = true;
+    showSnackbar('Impel Down automation started...', COLORS.SUCCESS);
+    this.clickImpelDownFloor();
   }
 
-  static stopAutomation() {
+  static stopAutomation(withSnackbar = true) {
     this.isAutomatic = false;
+
+    if (withSnackbar) {
+      showSnackbar('Impel Down automation stopped...', COLORS.SUCCESS);
+    }
   }
 
   static clickImpelDownFloor() {
     if (!this.isAutomatic) return;
 
     const boundCallback = this.clickImpelDownFloor.bind(this);
-    const floorNumber = this.getCurrentFloor();
 
-    if (!floorNumber) {
+    const currentFloor = this.getCurrentFloor();
+
+    if (!currentFloor) {
       showSnackbar('Please Open Impel Down first.', COLORS.FAILED);
       return;
     }
 
-    if (floorNumber === 26) {
+    if (currentFloor === this.targetFloor) {
       document.getElementById('toggleButton').click();
+      this.isFailureTriggered = false;
       this.isAutomatic = false;
       return;
     }
 
-    const targetText = `Floor ${floorNumber}`;
+    const targetText = `Floor ${currentFloor}`;
     const imageSelector = 'img[src*="/UIResource/ImpelDown/prisonfloor.png"].j-image.clickable';
     const clickableImages = document.querySelectorAll(imageSelector);
 
@@ -787,43 +842,65 @@ class ImpelDown {
         const battleRunning = document.querySelector('#fightContainer');
 
         if (!battleRunning) {
+          this.isFailureTriggered = true;
           window.autoBattleRetryLogic();
           return;
         }
 
         repetitiveBattleCheck(boundCallback, false, 1500);
-      }, 1500);
+      }, 3000);
     }
   }
 }
 
+function reflowStack() {
+  const SNACKBAR_HEIGHT_SHIFT = 40;
+  const SNACKBAR_CLASS = AUTO_SNACKBAR;
+  const remainingSnackbars = document.querySelectorAll(`.${SNACKBAR_CLASS}`);
+  const stackSize = remainingSnackbars.length;
+
+  remainingSnackbars.forEach((sb, index) => {
+    const newOffset = -SNACKBAR_HEIGHT_SHIFT * (stackSize - 1 - index);
+
+    sb.style.zIndex = 99999 + index;
+    sb.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    sb.style.transform = `translate(-50%, ${newOffset}px)`;
+  });
+}
+
 function showSnackbar(message, background, duration = 3000) {
-  const existing = document.getElementById(SNACKBAR_ID);
+  const SNACKBAR_CLASS = AUTO_SNACKBAR;
   const IS_FAILED = background === COLORS.FAILED;
+  const MAX_SNACKBARS = 3;
+  const uniqueId = `${SNACKBAR_ID}_${Date.now()}`;
 
-  if (existing) {
-    existing.remove();
+  let existingSnackbars = document.querySelectorAll(`.${SNACKBAR_CLASS}`);
+
+  if (existingSnackbars.length >= MAX_SNACKBARS) {
+    existingSnackbars[0]?.remove();
+    existingSnackbars = document.querySelectorAll(`.${SNACKBAR_CLASS}`);
   }
-
-  const snackbar = document.createElement('div');
-  snackbar.id = SNACKBAR_ID;
-  snackbar.textContent = message;
 
   const floatingUI = document.getElementById(FLOATING_UI_ID);
 
+  if (!floatingUI) return console.error('Floating UI element not found.');
+
   const uiRect = floatingUI.getBoundingClientRect();
-  const rectTop = uiRect.top;
+  const snackbarBaseTop = uiRect.top - 40;
   const snackbarCenterX = uiRect.left + uiRect.width / 2;
 
-  const snackbarTop = rectTop - 40;
+  const snackbar = document.createElement('div');
+  snackbar.id = uniqueId;
+  snackbar.className = SNACKBAR_CLASS;
+  snackbar.textContent = message;
 
   Object.assign(snackbar.style, {
     position: 'fixed',
-    top: `${snackbarTop}px`,
+    top: `${snackbarBaseTop}px`,
     left: `${snackbarCenterX}px`,
     width: 'auto',
     whiteSpace: 'nowrap',
-    transform: 'translate(-50%, 10px)',
+    transform: 'translate(-50%, 0)',
     background,
     color: '#fff',
     padding: '8px 16px',
@@ -835,29 +912,35 @@ function showSnackbar(message, background, duration = 3000) {
     opacity: '0',
     transition: 'opacity 0.3s ease, transform 0.3s ease',
   });
-
   document.body.appendChild(snackbar);
+
+  reflowStack();
 
   requestAnimationFrame(() => {
     snackbar.style.opacity = '1';
 
-    if (!IS_FAILED) {
-      snackbar.style.transform = 'translate(-50%, 0)';
-    } else {
+    if (IS_FAILED) {
       const ANIMATION_DURATION = '0.4s';
       snackbar.style.animation = `snackbar-shake ${ANIMATION_DURATION} ease-in-out 1`;
 
       setTimeout(() => {
         snackbar.style.animation = 'none';
-        snackbar.style.transform = 'translate(-50%, 0)';
       }, 200);
     }
   });
 
   setTimeout(() => {
     snackbar.style.opacity = '0';
-    snackbar.style.transform = 'translate(-50%, -10px)';
-    setTimeout(() => snackbar.remove(), 400);
+    snackbar.style.transform = 'translate(-50%, 10px)';
+
+    setTimeout(() => {
+      const removedElement = document.getElementById(uniqueId);
+      if (!removedElement) return;
+
+      removedElement.remove();
+
+      reflowStack();
+    }, 400);
   }, duration);
 }
 
@@ -926,31 +1009,32 @@ function buttonToggle() {
 
       switch (selectedItem.value) {
         case 'ex':
-          Exploration.stopAutomation();
+          Exploration.stopAutomation(false);
           break;
         case 'sd':
-          SoulDemonBlade.stopAutomation();
+          SoulDemonBlade.stopAutomation(false);
           break;
         case 'sm':
-          SlotMachine.stopAutomation();
+          SlotMachine.stopAutomation(false);
           break;
         case 'ln':
-          LasNoches.stopAutomation();
+          LasNoches.stopAutomation(false);
           break;
         case 'vh':
-          Valhalla.stopAutomation();
+          Valhalla.stopAutomation(false);
           break;
         case 'nt':
-          NinjaTrial.stopAutomation();
+          NinjaTrial.stopAutomation(false);
           break;
         case 'id':
-          ImpelDown.stopAutomation();
+          ImpelDown.stopAutomation(false);
           break;
       }
 
       let countdown = 3;
       button.textContent = `Retrying (${countdown})`;
       button.classList.add('active');
+      showSnackbar(`Action failed, retrying action...`, COLORS.FAILED);
 
       countdownInterval = setInterval(() => {
         countdown -= 1;
@@ -1019,8 +1103,6 @@ function buttonToggle() {
         isRunning ? ImpelDown.startAutomation() : ImpelDown.stopAutomation();
         break;
     }
-
-    showSnackbar(`${itemExist.label} automation is ${isRunning ? 'started' : 'stopped'}.`, COLORS.SUCCESS);
   });
 }
 
