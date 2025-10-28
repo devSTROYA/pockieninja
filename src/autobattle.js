@@ -809,7 +809,7 @@ class ImpelDown {
       return;
     }
 
-    if (currentFloor === this.targetFloor) {
+    if (currentFloor === this.targetFloor + 1) {
       document.getElementById('toggleButton').click();
       this.isFailureTriggered = false;
       this.isAutomatic = false;
