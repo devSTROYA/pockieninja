@@ -269,6 +269,7 @@ class SoulDemonBlade {
 
   static simulateBossClick() {
     const ids = [
+      10015, // soulender
       10019, // demon brute
       10026, // plague demon
       10039, // firebore
